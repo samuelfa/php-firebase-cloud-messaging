@@ -77,9 +77,14 @@ class Notification extends Message
         return $this;
     }
 
+    public function hasNotificationData()
+    {
+        return $this->title || $this->body || $this->badge || $this->icon || $this->clickAction || $this->sound || $this->tag;
+    }
+
     public function jsonSerialize()
     {
-        $jsonData = $this->getJsonData();
+        $jsonData = [];
         if ($this->title) {
             $jsonData['title'] = $this->title;
         }
