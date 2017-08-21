@@ -174,7 +174,7 @@ class Message implements \JsonSerializable
         if ($this->contentAvailable) {
             $jsonData['content_available'] = $this->contentAvailable;
         }
-        if ($this->notification) {
+        if ($this->notification && $this->notification->hasNotificationData()) {
             $jsonData['notification'] = $this->notification;
         }
 
