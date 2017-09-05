@@ -5,6 +5,9 @@ use sngrl\PhpFirebaseCloudMessaging\Notification;
 
 class NotificationTest extends PhpFirebaseCloudMessagingTestCase
 {
+    /**
+     * @var Notification
+     */
     private $fixture;
 
     protected function setUp()

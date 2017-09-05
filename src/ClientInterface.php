@@ -17,7 +17,7 @@ interface ClientInterface
      *
      * @return \sngrl\PhpFirebaseCloudMessaging\Client
      */
-    public function setApiKey($apiKey);
+    public function setApiKey(string $apiKey);
     
 
     /**
@@ -27,10 +27,10 @@ interface ClientInterface
      *
      * @return \sngrl\PhpFirebaseCloudMessaging\Client
      */
-    public function setProxyApiUrl($url);
+    public function setProxyApiUrl(string $url);
 
     /**
-     * sends your notification to the google servers and returns a guzzle repsonse object
+     * sends your notification to the google servers and returns a guzzle response object
      * containing their answer.
      *
      * @param Message $message

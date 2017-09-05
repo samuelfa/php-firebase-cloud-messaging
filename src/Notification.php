@@ -20,7 +20,6 @@ class Notification extends Message
             $this->title = $title;
         if ($body)
             $this->body = $body;
-        parent::__construct();
     }
 
     public function setTitle($title)
@@ -36,7 +35,7 @@ class Notification extends Message
     }
 
     /**
-     * iOS only, will add smal red bubbles indicating the number of notifications to your apps icon
+     * iOS only, will add small red bubbles indicating the number of notifications to your apps icon
      *
      * @param integer $badge
      * @return $this

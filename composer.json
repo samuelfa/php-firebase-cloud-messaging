@@ -12,14 +12,18 @@
         {
             "name": "Redjan Ymeraj",
             "email": "ymerajr@yahoo.com"
+        },
+        {
+            "name": "Samuel Fernández Amorós",
+            "email": "samuel84fa@gmail.com"
         }
     ],
     "require": {
         "guzzlehttp/guzzle": "*",
-        "php": ">=5.5"
+        "php": ">=7.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "*",
+        "phpunit/phpunit": ">=6.0",
         "mockery/mockery" : "*"
     },
     "autoload": {

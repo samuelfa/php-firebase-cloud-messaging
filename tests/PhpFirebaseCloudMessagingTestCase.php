@@ -1,7 +1,9 @@
 <?php
 namespace sngrl\PhpFirebaseCloudMessaging\Tests;
 
-class PhpFirebaseCloudMessagingTestCase extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class PhpFirebaseCloudMessagingTestCase extends TestCase
 {
     protected function tearDown()
     {

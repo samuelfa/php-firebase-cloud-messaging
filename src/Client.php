@@ -1,7 +1,7 @@
 <?php
 namespace sngrl\PhpFirebaseCloudMessaging;
 
-use GuzzleHttp;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * @author sngrl
@@ -12,14 +12,28 @@ class Client implements ClientInterface
     const DEFAULT_TOPIC_ADD_SUBSCRIPTION_API_URL = 'https://iid.googleapis.com/iid/v1:batchAdd';
     const DEFAULT_TOPIC_REMOVE_SUBSCRIPTION_API_URL = 'https://iid.googleapis.com/iid/v1:batchRemove';
 
+    /**
+     * @var string
+     */
     private $apiKey;
+
+    /**
+     * @var string
+     */
     private $proxyApiUrl;
+
+    /**
+     * @var \GuzzleHttp\Client
+     */
     private $guzzleClient;
 
-    public function __construct()
+    /**
+     * Client constructor.
+     * @param \GuzzleHttp\Client $guzzleClient
+     */
+    public function __construct(\GuzzleHttp\Client $guzzleClient)
     {
-
-        $this->guzzleClient = new \GuzzleHttp\Client();
+        $this->guzzleClient = $guzzleClient;
     }
 
     /**
@@ -30,7 +44,7 @@ class Client implements ClientInterface
      *
      * @return \sngrl\PhpFirebaseCloudMessaging\Client
      */
-    public function setApiKey($apiKey)
+    public function setApiKey(string $apiKey) : self
     {
         $this->apiKey = $apiKey;
         return $this;
@@ -43,23 +57,26 @@ class Client implements ClientInterface
      *
      * @return \sngrl\PhpFirebaseCloudMessaging\Client
      */
-    public function setProxyApiUrl($url)
+    public function setProxyApiUrl(string $url) : self
     {
         $this->proxyApiUrl = $url;
         return $this;
     }
 
     /**
-     * sends your notification to the google servers and returns a guzzle repsonse object
+     * sends your notification to the google servers and returns a guzzle response object
      * containing their answer.
      *
      * @param Message $message
-     *
-     * @return \Psr\Http\Message\ResponseInterface
-     * @throws \GuzzleHttp\Exception\RequestException
+     * @return ResponseInterface
+     * @throws \Exception
      */
-    public function send(Message $message)
+    public function send(Message $message) : ResponseInterface
     {
+        if(empty($this->apiKey)){
+            throw new \Exception('Should be configure API key value previously to send a push message');
+        }
+
         return $this->guzzleClient->post(
             $this->getApiUrl(),
             [
@@ -73,40 +90,40 @@ class Client implements ClientInterface
     }
 
     /**
-     * @param integer $topic_id
-     * @param array|string $recipients_tokens
+     * @param integer $topicId
+     * @param array|string $recipientsTokens
      *
      * @return \Psr\Http\Message\ResponseInterface
      */
-    public function addTopicSubscription($topic_id, $recipients_tokens)
+    public function addTopicSubscription(int $topicId, $recipientsTokens) : ResponseInterface
     {
-        return $this->processTopicSubscription($topic_id, $recipients_tokens, self::DEFAULT_TOPIC_ADD_SUBSCRIPTION_API_URL);
+        return $this->processTopicSubscription($topicId, $recipientsTokens, self::DEFAULT_TOPIC_ADD_SUBSCRIPTION_API_URL);
     }
 
 
     /**
-     * @param integer $topic_id
-     * @param array|string $recipients_tokens
+     * @param integer $topicId
+     * @param array|string $recipientsTokens
      *
      * @return \Psr\Http\Message\ResponseInterface
      */
-    public function removeTopicSubscription($topic_id, $recipients_tokens)
+    public function removeTopicSubscription(int $topicId, $recipientsTokens) : ResponseInterface
     {
-        return $this->processTopicSubscription($topic_id, $recipients_tokens, self::DEFAULT_TOPIC_REMOVE_SUBSCRIPTION_API_URL);
+        return $this->processTopicSubscription($topicId, $recipientsTokens, self::DEFAULT_TOPIC_REMOVE_SUBSCRIPTION_API_URL);
     }
 
 
     /**
-     * @param integer $topic_id
-     * @param array|string $recipients_tokens
+     * @param integer $topicId
+     * @param array|string $recipientsTokens
      * @param string $url
      *
      * @return \Psr\Http\Message\ResponseInterface
      */
-    protected function processTopicSubscription($topic_id, $recipients_tokens, $url)
+    protected function processTopicSubscription(int $topicId, $recipientsTokens, string $url) : ResponseInterface
     {
-        if (!is_array($recipients_tokens))
-            $recipients_tokens = [$recipients_tokens];
+        if (!is_array($recipientsTokens))
+            $recipientsTokens = [$recipientsTokens];
 
         return $this->guzzleClient->post(
             $url,
@@ -116,14 +133,18 @@ class Client implements ClientInterface
                     'Content-Type' => 'application/json'
                 ],
                 'body' => json_encode([
-                    'to' => '/topics/' . $topic_id,
-                    'registration_tokens' => $recipients_tokens,
+                    'to' => '/topics/' . $topicId,
+                    'registration_tokens' => $recipientsTokens,
                 ])
             ]
         );
     }
 
-    private function getApiUrl()
+    /**
+     * Return the url configure to use the API, by the is using the constant self::DEFAULT_API_URL
+     * @return string
+     */
+    private function getApiUrl() : string
     {
         return isset($this->proxyApiUrl) ? $this->proxyApiUrl : self::DEFAULT_API_URL;
     }

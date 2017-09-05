@@ -6,22 +6,78 @@ use sngrl\PhpFirebaseCloudMessaging\Recipient\Topic;
 use sngrl\PhpFirebaseCloudMessaging\Recipient\Device;
 
 /**
+ * Class Message
+ * @package sngrl\PhpFirebaseCloudMessaging
  * @author sngrl
  */
 class Message implements \JsonSerializable
 {
+    /**
+     * Maximum topics and devices: https://firebase.google.com/docs/cloud-messaging/http-server-ref#send-downstream
+     */
+    const MAX_TOPICS = 3;
+    const MAX_DEVICES = 1000;
+
+    /**
+     * @var Notification
+     */
     private $notification;
+
+    /**
+     * @var string
+     */
     private $collapseKey;
+
+    /**
+     * @var string
+     */
     private $priority;
+
+    /**
+     * @var boolean
+     */
     private $contentAvailable;
+
+    /**
+     * @var array
+     */
     private $data;
+
+    /**
+     * @var Device|Topic[]
+     */
     private $recipients = [];
+
+    /**
+     * @var string
+     */
     private $recipientType;
-    private $jsonData;
 
+    /**
+     * @var int
+     */
+    private $ttl;
 
-    public function __construct() {
-        $this->jsonData = [];
+    /**
+     * @var string
+     */
+    private $condition;
+
+    /**
+     * Specify a condition pattern when sending to combinations of topics
+     * https://firebase.google.com/docs/cloud-messaging/topic-messaging#sending_topic_messages_from_the_server
+     *
+     * Examples:
+     * "%s && %s" > Send to devices subscribed to topic 1 and topic 2
+     * "%s && (%s || %s)" > Send to devices subscribed to topic 1 and topic 2 or 3
+     *
+     * @param string $condition
+     * @return $this
+     */
+    public function setCondition(string $condition) : self
+    {
+        $this->condition = $condition;
+        return $this;
     }
 
     /**
@@ -31,7 +87,7 @@ class Message implements \JsonSerializable
      *
      * @return \sngrl\PhpFirebaseCloudMessaging\Message
      */
-    public function addRecipient(Recipient $recipient)
+    public function addRecipient(Recipient $recipient) : self
     {
         $this->recipients[] = $recipient;
 
@@ -45,35 +101,61 @@ class Message implements \JsonSerializable
         return $this;
     }
 
-    public function setNotification(Notification $notification)
+    /**
+     * @param Notification $notification
+     * @return Message
+     */
+    public function setNotification(Notification $notification) : self
     {
         $this->notification = $notification;
         return $this;
     }
 
-    public function setCollapseKey($collapseKey)
+    /**
+     * Key used to collapse the previous message sent with the same key and display the new one
+     * @param $collapseKey
+     * @return $this
+     */
+    public function setCollapseKey(string $collapseKey) : self
     {
         $this->collapseKey = $collapseKey;
         return $this;
     }
 
-    public function setPriority($priority)
+    /**
+     * Value used to give more or less priority to each message, we have two types of priorities: "normal", "high"
+     * @param string $priority
+     * @return $this
+     */
+    public function setPriority(string $priority) : self
     {
         $this->priority = $priority;
         return $this;
     }
 
-    public function getContentAvailable()
+    /**
+     * @return bool
+     */
+    public function getContentAvailable() : bool
     {
         return $this->contentAvailable;
     }
 
-    public function setContentAvailable($contentAvailable)
+    /**
+     * Used to indicate to iOS App when the server want to send information to sync the app
+     * @param boolean $contentAvailable
+     * @return $this
+     */
+    public function setContentAvailable(bool $contentAvailable)
     {
         $this->contentAvailable = $contentAvailable;
         return $this;
     }
 
+    /**
+     * @param array $data
+     * @return $this
+     */
     public function setData(array $data)
     {
         $this->data = $data;
@@ -81,85 +163,32 @@ class Message implements \JsonSerializable
     }
 
     /**
-     * Set root message data via key
-     *
-     * @param string $key
-     * @param mixed $value
+     * @param int $value
      * @return $this
      */
-    public function setJsonKey($key, $value) {
-        $this->jsonData[$key] = $value;
+    public function setTimeToLive(int $value)
+    {
+        $this->ttl = $value;
         return $this;
     }
 
     /**
-     * Unset root message data via key
-     *
-     * @param string $key
-     * @return $this
-     */
-    public function unsetJsonKey($key) {
-        unset($this->jsonData[$key]);
-        return $this;
-    }
-
-    /**
-     * Get root message data via key
-     *
-     * @param string $key
-     * @return mixed
-     */
-    public function getJsonKey($key) {
-        return $this->jsonData[$key];
-    }
-
-    /**
-     * Get root message data
-     *
      * @return array
      */
-    public function getJsonData() {
-        return $this->jsonData;
-    }
-
-    /**
-     * Set root message data
-     *
-     * @param array $array
-     * @return $this
-     */
-    public function setJsonData($array) {
-        $this->jsonData = $array;
-        return $this;
-    }
-
-
-    public function setDelayWhileIdle($value)
-    {
-        $this->setJsonKey('delay_while_idle', (bool)$value);
-        return $this;
-    }
-
-    public function setTimeToLive($value)
-    {
-        $this->setJsonKey('time_to_live', (int)$value);
-        return $this;
-    }
-
     public function jsonSerialize()
     {
-        $jsonData = $this->jsonData;
+        $jsonData = [];
 
         if (empty($this->recipients)) {
             throw new \UnexpectedValueException('Message must have at least one recipient');
         }
 
-        $target = $this->createTo();
-
-        if(is_array($target)){
-            $jsonData['registration_ids'] = $target;
+        if (count($this->recipients) == 1) {
+            $jsonData['to'] = $this->createTarget();
+        } elseif ($this->recipientType == Device::class) {
+            $jsonData['registration_ids'] = $this->createTarget();
         } else {
-            $jsonData['to'] = $target;
+            $jsonData['condition'] = $this->createTarget();
         }
 
         if ($this->collapseKey) {
@@ -181,20 +210,40 @@ class Message implements \JsonSerializable
         return $jsonData;
     }
 
-    private function createTo()
+    /**
+     * @return array|null|string
+     */
+    private function createTarget()
     {
+        $recipientCount = count($this->recipients);
         switch ($this->recipientType) {
             case Topic::class:
-                if (count($this->recipients) > 1) {
-                    throw new \UnexpectedValueException(
-                        'Currently messages to target multiple topics do not work, but its obviously planned: '.
-                        'https://firebase.google.com/docs/cloud-messaging/topic-messaging#sending_topic_messages_from_the_server'
-                    );
+                if ($recipientCount > self::MAX_TOPICS) {
+                    throw new \OutOfRangeException(sprintf('Message topic limit exceeded. Firebase supports a maximum of %u topics.', self::MAX_TOPICS));
+
+                } else if (!$this->condition) {
+                    throw new \InvalidArgumentException('Missing message condition. You must specify a condition pattern when sending to combinations of topics.');
+
+                } else if ($recipientCount != substr_count($this->condition, '%s')) {
+                    throw new \UnexpectedValueException('The number of message topics must match the number of occurrences of "%s" in the condition pattern.');
                 }
-                return sprintf('/topics/%s', current($this->recipients)->getName());
-                break;
+
+                if ($recipientCount == 1) {
+                    return sprintf('/topics/%s', current($this->recipients)->getName());
+                } else {
+                    $names = [];
+                    foreach ($this->recipients as $recipient) {
+                        $names[] = sprintf("'%s' in topics", $recipient->getName());
+                    }
+                    return vsprintf($this->condition, $names);
+                }
+
             case Device::class:
-                if (count($this->recipients) == 1) {
+                if ($recipientCount > self::MAX_DEVICES) {
+                    throw new \OutOfRangeException(sprintf('Message device limit exceeded. Firebase supports a maximum of %u devices.', self::MAX_DEVICES));
+                }
+
+                if ($recipientCount == 1) {
                     return current($this->recipients)->getToken();
                 } else {
                     return array_map(function(Device $device){
@@ -202,9 +251,8 @@ class Message implements \JsonSerializable
                     }, $this->recipients);
                 }
 
-                break;
             default:
-                throw new \UnexpectedValueException('PhpFirebaseCloudMessaging only supports single topic and single device messages yet');
+                return null;
                 break;
         }
     }
